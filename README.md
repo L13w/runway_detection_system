@@ -113,12 +113,121 @@ GET /api/status
 # System health and statistics
 ```
 
+## 📊 Dashboards
+
+### Real-Time Monitoring Dashboard
+Access at: `http://localhost:8000/dashboard`
+
+Features:
+- **System Overview**: Total airports, active status, parsing success rates
+- **Activity Stats**: Updates tracked over last hour, day, week, month
+- **Runway Changes**: Real-time feed of configuration changes across all airports
+- **Low Confidence Alerts**: Airports where parsing confidence is < 100%
+- **Stale Airport Detection**: Alerts for airports with no updates in 3+ hours
+- **Auto-refresh**: Updates every 30 seconds
+
+### Human Review Dashboard
+Access at: `http://localhost:8000/review`
+
+An interactive interface for reviewing and correcting parsing errors:
+
+**Queue Prioritization:**
+- Low confidence parses (< 100%)
+- Results with empty runway arrays
+- Failed parsing attempts
+
+**Review Workflow:**
+1. System displays ATIS text with current parse results
+2. Human reviewer corrects arriving/departing runway fields
+3. Optional notes can be added for context
+4. Two-action workflow:
+   - **"Mark as Correct"** - Skip if parsing is actually accurate
+   - **"Submit Correction"** - Save corrections and learn from them
+
+**Learning System:**
+When you submit a correction:
+1. Original and corrected data stored in `human_reviews` table
+2. Patterns extracted from ATIS text and stored in `parsing_corrections` table
+3. System builds knowledge base of successful corrections
+4. Success rates tracked for each learned pattern
+5. Future parsing can reference these corrections
+
+**Statistics Tracked:**
+- Pending items needing review
+- Total reviews completed
+- Breakdown by issue type (low confidence, missing data, failed)
+
+### Using the Review Dashboard
+
+```bash
+# Access the review dashboard
+open http://localhost:8000/review
+
+# Check how many items need review
+curl http://localhost:8000/api/review/stats
+
+# Get next 20 items in queue
+curl http://localhost:8000/api/review/pending?limit=20
+```
+
+**Example Review Process:**
+
+1. Dashboard shows: **KDEN** - 0% confidence
+   - ATIS: "DEPG RWY17L, RWY25"
+   - Current Parse: Arriving: [], Departing: []
+
+2. Human corrects:
+   - Arriving: (leave empty)
+   - Departing: 17L, 25
+   - Note: "DEPG = departing"
+
+3. System learns:
+   - Pattern: "DEPG RWY" → departing runways
+   - Stores this correction for KDEN
+   - Improves future parsing accuracy
+
+**Feedback Loop:**
+
+```
+┌─────────────────┐
+│   ATIS Data     │
+│   Collected     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Parse Runways  │◄────────┐
+│  (confidence)   │         │
+└────────┬────────┘         │
+         │                  │
+         ▼                  │
+┌─────────────────┐         │
+│ Low Confidence? │         │
+│   Empty Data?   │         │
+└────────┬────────┘         │
+         │ YES              │
+         ▼                  │
+┌─────────────────┐         │
+│ Human Reviews   │         │
+│  & Corrects     │         │
+└────────┬────────┘         │
+         │                  │
+         ▼                  │
+┌─────────────────┐         │
+│ Store Pattern   │         │
+│  in Database    │─────────┘
+└─────────────────┘
+   Improves Future
+     Parsing
+```
+
 ## 📊 Data Collection Schedule
 
-The collector runs every 5 minutes, aligned with typical ATIS update patterns (:03 and :33 past the hour). This ensures:
+The collector runs every 5 minutes via cron, aligned with typical ATIS update patterns. This ensures:
 - Captures regular updates
 - Detects emergency configuration changes
 - Minimizes API calls while maintaining data freshness
+- Automatically parses and stores runway configurations with confidence scores
 
 ## 🧠 How It Works
 
@@ -149,13 +258,14 @@ Calculates average runway heading to determine flow:
 
 ### Model Evolution Path
 1. **Current**: Rule-based regex patterns (85-90% accuracy)
-2. **Next**: NLP with spaCy (90-95% accuracy)
-3. **Future**: Fine-tuned BERT (95%+ accuracy)
+2. **Active**: Human-in-the-loop corrections (improving daily)
+3. **Next**: NLP with spaCy + learned patterns (90-95% accuracy)
+4. **Future**: Fine-tuned BERT with human corrections (95%+ accuracy)
 
 ### Accuracy Monitoring
 ```sql
 -- Check parser accuracy
-SELECT 
+SELECT
     airport_code,
     AVG(confidence_score) as avg_confidence,
     COUNT(*) as samples
@@ -163,6 +273,26 @@ FROM runway_configs
 WHERE created_at > NOW() - INTERVAL '7 days'
 GROUP BY airport_code
 ORDER BY avg_confidence DESC;
+
+-- View human corrections
+SELECT
+    airport_code,
+    COUNT(*) as corrections_made,
+    COUNT(CASE WHEN review_status = 'approved' THEN 1 END) as marked_correct,
+    COUNT(CASE WHEN review_status = 'corrected' THEN 1 END) as needed_correction
+FROM human_reviews
+GROUP BY airport_code
+ORDER BY corrections_made DESC;
+
+-- Check learned patterns
+SELECT
+    airport_code,
+    COUNT(*) as patterns_learned,
+    AVG(success_rate) as avg_success_rate
+FROM parsing_corrections
+GROUP BY airport_code
+HAVING COUNT(*) > 0
+ORDER BY patterns_learned DESC;
 ```
 
 ## 🏢 Airport-Specific Notes
@@ -228,7 +358,11 @@ curl http://localhost:8000/api/status
 
 ## 🔮 Future Enhancements
 
-- [ ] Machine learning model for improved accuracy
+- [x] Real-time monitoring dashboard
+- [x] Human-in-the-loop review system
+- [x] Learning from human corrections
+- [ ] Apply learned patterns automatically in parser
+- [ ] Machine learning model trained on corrections
 - [ ] WebSocket support for real-time updates
 - [ ] Historical trend analysis
 - [ ] Wind-based runway prediction
@@ -238,10 +372,19 @@ curl http://localhost:8000/api/status
 
 ## 📝 Contributing
 
+### Help Improve Parsing Accuracy
+
+**Use the Human Review Dashboard:**
+1. Visit `http://localhost:8000/review`
+2. Review items with low confidence or missing data
+3. Correct runway assignments
+4. Your corrections automatically improve future parsing
+
+**Other Contributions:**
 1. Collect ATIS samples with unusual patterns
 2. Add regex patterns for new phrases
 3. Test with diverse airport configurations
-4. Submit labeled training data
+4. Report parsing issues via GitHub
 
 ## 📄 License
 
@@ -258,6 +401,8 @@ MIT License - See LICENSE file
 For issues or questions:
 - Open an issue on GitHub
 - API documentation: http://localhost:8000/docs
+- Monitoring dashboard: http://localhost:8000/dashboard
+- Review dashboard: http://localhost:8000/review
 - System status: http://localhost:8000/api/status
 
 ---

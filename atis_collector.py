@@ -15,6 +15,9 @@ import logging
 import os
 from typing import Dict, List, Optional
 
+# Import runway parser
+from runway_parser import RunwayParser
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -35,6 +38,7 @@ DB_CONFIG = {
 class ATISCollector:
     def __init__(self):
         self.conn = None
+        self.parser = RunwayParser()
         self.connect_db()
         
     def connect_db(self):
@@ -112,11 +116,37 @@ class ATISCollector:
                 
                 # Store the snapshot (always store for historical record)
                 cursor.execute("""
-                    INSERT INTO atis_data 
+                    INSERT INTO atis_data
                     (airport_code, collected_at, information_letter, datis_text, content_hash, is_changed)
                     VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING id
                 """, (airport_code, collected_at, info_letter, datis_text, content_hash, is_changed))
-                
+
+                atis_id = cursor.fetchone()[0]
+
+                # Parse and store runway configuration only if ATIS changed
+                if is_changed:
+                    try:
+                        config = self.parser.parse(airport_code, datis_text, info_letter)
+
+                        cursor.execute("""
+                            INSERT INTO runway_configs
+                            (airport_code, atis_id, arriving_runways, departing_runways,
+                             traffic_flow, configuration_name, confidence_score)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (airport_code, atis_id) DO NOTHING
+                        """, (
+                            airport_code,
+                            atis_id,
+                            json.dumps(config.arriving_runways),
+                            json.dumps(config.departing_runways),
+                            config.traffic_flow,
+                            config.configuration_name,
+                            config.confidence_score
+                        ))
+                    except Exception as parse_error:
+                        logger.debug(f"Failed to parse runway config for {airport_code}: {parse_error}")
+
             except Exception as e:
                 logger.error(f"Error storing ATIS for {airport_code}: {e}")
                 continue
