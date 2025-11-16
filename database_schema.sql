@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS runway_configs (
     traffic_flow VARCHAR(20),
     configuration_name VARCHAR(50),
     confidence_score FLOAT,
+    merged_from_pair BOOLEAN DEFAULT FALSE,  -- TRUE if arrivals/departures came from separate ARR/DEP INFO broadcasts
+    component_confidence JSONB,  -- {"arrivals": 1.0, "departures": 1.0} - confidence for each component
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(airport_code, atis_id)
 );

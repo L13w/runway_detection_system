@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -94,14 +94,6 @@ class DashboardStats(BaseModel):
     activity_stats: Dict  # Updates by time period (hour, day, week, month)
     recent_changes: List[Dict]  # Recent runway config changes
 
-class AirportStatus(BaseModel):
-    airport_code: str
-    arriving: List[str]
-    departing: List[str]
-    flow: str
-    last_change: str
-    recent_changes: List[Any]  # 4 most recent changes
-
 class ReviewItem(BaseModel):
     id: int
     atis_id: int
@@ -131,7 +123,6 @@ class ReviewStats(BaseModel):
     low_confidence_count: int
     has_none_count: int
     failed_parse_count: int
-
 
 # Database connection helper
 def get_db_connection():
@@ -813,56 +804,6 @@ async def review_dashboard():
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
-            .airport-list { margin-top: 15px; }
-            .airport-item {
-                display: flex;
-                align-items: center;
-                padding: 12px;
-                background: #0f1419;
-                border-radius: 8px;
-                margin-bottom: 8px;
-                border: 1px solid #2d3748;
-                cursor: pointer;
-                transition: background 0.2s;
-            }
-            .airport-item:hover { background: #1a1f2e; }
-            .airport-item.pinned { background: #1e2a3a; border-color: #667eea; }
-            .pin-icon {
-                font-size: 16px;
-                margin-right: 12px;
-                cursor: pointer;
-                user-select: none;
-                opacity: 0.5;
-                transition: opacity 0.2s;
-            }
-            .pin-icon:hover, .airport-item.pinned .pin-icon { opacity: 1; }
-            .airport-code { font-weight: bold; margin-right: 12px; min-width: 50px; }
-            .airport-runways { flex: 1; font-size: 14px; color: #a0aec0; }
-            .airport-time { font-size: 12px; color: #718096; margin-right: 12px; }
-            .chevron {
-                font-size: 12px;
-                transition: transform 0.3s;
-                user-select: none;
-            }
-            .chevron.open { transform: rotate(180deg); }
-            .airport-drawer {
-                max-height: 0;
-                overflow: hidden;
-                transition: max-height 0.3s ease-out;
-                background: #0a0e14;
-                border-radius: 0 0 8px 8px;
-                margin-top: -8px;
-                margin-bottom: 8px;
-            }
-            .airport-drawer.open { max-height: 600px; padding: 15px; }
-            .drawer-change {
-                padding: 10px;
-                background: #1a1f2e;
-                border-radius: 6px;
-                margin-bottom: 8px;
-                font-size: 13px;
-            }
-            .drawer-change-time { color: #667eea; font-weight: bold; margin-bottom: 5px; }
         </style>
     </head>
     <body>
@@ -1355,148 +1296,7 @@ async def dashboard():
             ::-webkit-scrollbar-track { background: #1a1f2e; }
             ::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 4px; }
             ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
-                    .airport-list {
-                display: grid;
-                gap: 8px;
-            }
-            .airport-item {
-                display: flex;
-                align-items: center;
-                padding: 12px 15px;
-                background: #0f1419;
-                border-radius: 8px;
-                border: 1px solid #2d3748;
-                cursor: pointer;
-                transition: background 0.2s;
-            }
-            .airport-item:hover {
-                background: #1a1f2e;
-            }
-            .airport-item.pinned {
-                background: #1e293b;
-                border-color: #667eea;
-            }
-            .pin-icon {
-                margin-right: 10px;
-                cursor: pointer;
-                user-select: none;
-                font-size: 16px;
-            }
-            .pin-icon:hover {
-                transform: scale(1.2);
-            }
-            .airport-main {
-                flex: 1;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            .airport-code {
-                font-weight: bold;
-                color: #667eea;
-                min-width: 60px;
-            }
-            .airport-runways {
-                font-size: 13px;
-                color: #a0aec0;
-            }
-            .airport-time {
-                font-size: 11px;
-                color: #718096;
-                margin-left: auto;
-                margin-right: 10px;
-            }
-            .chevron {
-                cursor: pointer;
-                user-select: none;
-                transition: transform 0.3s;
-                color: #667eea;
-            }
-            .chevron.open {
-                transform: rotate(180deg);
-            }
-            .airport-drawer {
-                max-height: 0;
-                overflow: hidden;
-                transition: max-height 0.3s ease-out;
-                margin-top: 0;
-            }
-            .airport-drawer.open {
-                max-height: 500px;
-                margin-top: 10px;
-            }
-            .drawer-content {
-                padding: 15px;
-                background: #0f1419;
-                border-radius: 8px;
-                border-left: 3px solid #667eea;
-            }
-            .change-entry {
-                padding: 10px;
-                margin-bottom: 8px;
-                background: #1a1f2e;
-                border-radius: 6px;
-                font-size: 13px;
-            }
-            .change-entry:last-child {
-                margin-bottom: 0;
-            }
-            .change-timestamp {
-                color: #718096;
-                font-size: 11px;
-                margin-bottom: 5px;
-            }
-            .airport-list { margin-top: 15px; }
-            .airport-item {
-                display: flex;
-                align-items: center;
-                padding: 12px;
-                background: #0f1419;
-                border-radius: 8px;
-                margin-bottom: 8px;
-                border: 1px solid #2d3748;
-                transition: background 0.2s;
-            }
-            .airport-item:hover { background: #1a1f2e; }
-            .airport-item.pinned { background: #1e2a3a; border-color: #667eea; }
-            .pin-icon {
-                font-size: 16px;
-                margin-right: 12px;
-                cursor: pointer;
-                user-select: none;
-                opacity: 0.5;
-                transition: opacity 0.2s;
-            }
-            .pin-icon:hover, .airport-item.pinned .pin-icon { opacity: 1; }
-            .airport-code { font-weight: bold; margin-right: 12px; min-width: 50px; }
-            .airport-runways { flex: 1; font-size: 14px; color: #a0aec0; }
-            .airport-time { font-size: 12px; color: #718096; margin-right: 12px; }
-            .chevron {
-                font-size: 12px;
-                transition: transform 0.3s;
-                user-select: none;
-                cursor: pointer;
-            }
-            .chevron.open { transform: rotate(180deg); }
-            .airport-drawer {
-                max-height: 0;
-                overflow: hidden;
-                transition: max-height 0.3s ease-out;
-                background: #0a0e14;
-                border-radius: 0 0 8px 8px;
-                margin-top: -8px;
-                margin-bottom: 8px;
-            }
-            .airport-drawer.open { max-height: 600px; padding: 15px; }
-            .drawer-change {
-                padding: 10px;
-                background: #1a1f2e;
-                border-radius: 6px;
-                margin-bottom: 8px;
-                font-size: 13px;
-            }
-            .drawer-change-time { color: #667eea; font-weight: bold; margin-bottom: 5px; }
-</style>
+        </style>
     </head>
     <body>
         <div class="header">
@@ -1516,151 +1316,6 @@ async def dashboard():
 
         <script>
             let refreshInterval;
-
-                        // Airport list functions
-            let openDrawers = new Set();
-            
-            function getPinnedAirports() {
-                const cookies = document.cookie.split(';');
-                for (let cookie of cookies) {
-                    const [name, value] = cookie.trim().split('=');
-                    if (name === 'pinned_airports') {
-                        return value ? value.split(',') : [];
-                    }
-                }
-                return [];
-            }
-            
-            function savePinnedAirports(pins) {
-                const expires = new Date();
-                expires.setFullYear(expires.getFullYear() + 1);
-                document.cookie = `pinned_airports=${pins.join(',')};expires=${expires.toUTCString()};path=/`;
-            }
-            
-            function sortAirports(airports, pinnedList) {
-                const pinned = [];
-                const unpinned = [];
-                
-                airports.forEach(apt => {
-                    if (pinnedList.includes(apt.airport_code)) {
-                        pinned.push(apt);
-                    } else {
-                        unpinned.push(apt);
-                    }
-                });
-                
-                // Sort pinned by pin order
-                pinned.sort((a, b) => {
-                    return pinnedList.indexOf(a.airport_code) - pinnedList.indexOf(b.airport_code);
-                });
-                
-                // Sort unpinned alphabetically
-                unpinned.sort((a, b) => a.airport_code.localeCompare(b.airport_code));
-                
-                return [...pinned, ...unpinned];
-            }
-            
-            function togglePin(airportCode) {
-                let pins = getPinnedAirports();
-                if (pins.includes(airportCode)) {
-                    pins = pins.filter(p => p !== airportCode);
-                } else {
-                    pins.push(airportCode);
-                }
-                savePinnedAirports(pins);
-                fetchCurrentAirports();
-            }
-            
-            function toggleDrawer(airportCode) {
-                if (openDrawers.has(airportCode)) {
-                    openDrawers.delete(airportCode);
-                } else {
-                    openDrawers.add(airportCode);
-                }
-                
-                const drawer = document.getElementById(`drawer-${airportCode}`);
-                const chevron = document.getElementById(`chevron-${airportCode}`);
-                
-                if (drawer && chevron) {
-                    drawer.classList.toggle('open');
-                    chevron.classList.toggle('open');
-                }
-            }
-            
-            function formatRelativeTime(isoString) {
-                if (!isoString) return 'Never';
-                const date = new Date(isoString);
-                const now = new Date();
-                const diffMs = now - date;
-                const diffMins = Math.floor(diffMs / 60000);
-                const diffHours = Math.floor(diffMins / 60);
-                const diffDays = Math.floor(diffHours / 24);
-                
-                if (diffMins < 1) return 'Just now';
-                if (diffMins < 60) return `${diffMins}m ago`;
-                if (diffHours < 24) return `${diffHours}h ago`;
-                return `${diffDays}d ago`;
-            }
-            
-            async function fetchCurrentAirports() {
-                try {
-                    const response = await fetch('/api/dashboard/current-airports');
-                    const airports = await response.json();
-                    renderAirportList(airports);
-                } catch (error) {
-                    console.error('Error fetching airports:', error);
-                    document.getElementById('airportList').innerHTML = 
-                        '<div class="loading"><p>Error loading airports</p></div>';
-                }
-            }
-            
-            function renderAirportList(airports) {
-                const pinnedList = getPinnedAirports();
-                const sortedAirports = sortAirports(airports, pinnedList);
-                const container = document.getElementById('airportList');
-                
-                const html = sortedAirports.map(apt => {
-                    const isPinned = pinnedList.includes(apt.airport_code);
-                    const pinIcon = isPinned ? '📍' : '📌';
-                    const arriving = apt.arriving.join(',') || 'None';
-                    const departing = apt.departing.join(',') || 'None';
-                    const isOpen = openDrawers.has(apt.airport_code);
-                    
-                    return `
-                        <div>
-                            <div class="airport-item ${isPinned ? 'pinned' : ''}" id="airport-${apt.airport_code}">
-                                <span class="pin-icon" onclick="event.stopPropagation(); togglePin('${apt.airport_code}')">${pinIcon}</span>
-                                <div class="airport-main" onclick="toggleDrawer('${apt.airport_code}')">
-                                    <span class="airport-code">${apt.airport_code}</span>
-                                    <span class="airport-runways">↓${arriving} ↑${departing}</span>
-                                    <span class="airport-time">${formatRelativeTime(apt.last_change)}</span>
-                                    <span class="chevron ${isOpen ? 'open' : ''}" id="chevron-${apt.airport_code}">▼</span>
-                                </div>
-                            </div>
-                            <div class="airport-drawer ${isOpen ? 'open' : ''}" id="drawer-${apt.airport_code}">
-                                <div class="drawer-content">
-                                    ${apt.recent_changes.length > 0 ? 
-                                        apt.recent_changes.map(change => `
-                                            <div class="change-entry">
-                                                <div class="change-timestamp">${new Date(change.time).toLocaleString()}</div>
-                                                <div class="runway-change">
-                                                    <span>↓${change.from_arriving.join(',')||'None'} ↑${change.from_departing.join(',')||'None'}</span>
-                                                    <span class="arrow">→</span>
-                                                    <span>↓${change.to_arriving.join(',')||'None'} ↑${change.to_departing.join(',')||'None'}</span>
-                                                </div>
-                                                ${change.duration_minutes ? `<div class="stat-sublabel">Lasted ${change.duration_minutes} min</div>` : ''}
-                                            </div>
-                                        `).join('') : 
-                                        '<p style="color: #718096; font-size: 13px;">No recent changes</p>'
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-                
-                container.innerHTML = html;
-            }
 
             async function fetchDashboardData() {
                 try {
@@ -1725,19 +1380,6 @@ async def dashboard():
                         `).join('')}
                     </div>
                     ` : ''}
-
-
-                    <div class="section" id="currentAirportsSection">
-                        <div class="section-title">
-                            ✈️ Current Airport Status
-                        </div>
-                        <div id="airportList" class="airport-list">
-                            <div class="loading">
-                                <div class="spinner"></div>
-                                <p style="margin-top: 15px;">Loading airports...</p>
-                            </div>
-                        </div>
-                    </div>
 
                     <div class="section">
                         <div class="section-title">
@@ -1824,160 +1466,11 @@ async def dashboard():
                 dashboard.innerHTML = html;
             }
 
-            // Cookie functions for pinned airports
-            function getPinnedAirports() {
-                const cookie = document.cookie.split('; ').find(row => row.startsWith('pinnedAirports='));
-                if (!cookie) return [];
-                try {
-                    return JSON.parse(decodeURIComponent(cookie.split('=')[1]));
-                } catch (e) {
-                    return [];
-                }
-            }
-
-            function savePinnedAirports(pins) {
-                const expires = new Date();
-                expires.setFullYear(expires.getFullYear() + 1); // 1 year expiration
-                document.cookie = `pinnedAirports=${encodeURIComponent(JSON.stringify(pins))}; expires=${expires.toUTCString()}; path=/`;
-            }
-
-            // Sort airports: pinned first (in pin order), then alphabetical
-            function sortAirports(airports, pins) {
-                const pinned = [];
-                const unpinned = [];
-
-                airports.forEach(apt => {
-                    if (pins.includes(apt.airport_code)) {
-                        pinned.push(apt);
-                    } else {
-                        unpinned.push(apt);
-                    }
-                });
-
-                // Sort pinned by pin order
-                pinned.sort((a, b) => pins.indexOf(a.airport_code) - pins.indexOf(b.airport_code));
-
-                // Sort unpinned alphabetically
-                unpinned.sort((a, b) => a.airport_code.localeCompare(b.airport_code));
-
-                return [...pinned, ...unpinned];
-            }
-
-            // Toggle pin state
-            function togglePin(airportCode) {
-                let pins = getPinnedAirports();
-                const index = pins.indexOf(airportCode);
-
-                if (index === -1) {
-                    // Pin it
-                    pins.push(airportCode);
-                } else {
-                    // Unpin it
-                    pins.splice(index, 1);
-                }
-
-                savePinnedAirports(pins);
-                fetchCurrentAirports(); // Re-render with new pin state
-            }
-
-            // Toggle drawer open/close
-            function toggleDrawer(airportCode) {
-                const drawer = document.getElementById(`drawer-${airportCode}`);
-                const chevron = document.getElementById(`chevron-${airportCode}`);
-
-                if (drawer && chevron) {
-                    drawer.classList.toggle('open');
-                    chevron.classList.toggle('open');
-                }
-            }
-
-            // Render airport list
-            function renderAirportList(airports) {
-                const airportList = document.getElementById('airportList');
-                if (!airportList) return;
-
-                const pins = getPinnedAirports();
-                const sortedAirports = sortAirports(airports, pins);
-
-                if (sortedAirports.length === 0) {
-                    airportList.innerHTML = '<p style="color: #718096; text-align: center; padding: 20px;">No airport data available</p>';
-                    return;
-                }
-
-                const html = sortedAirports.map(apt => {
-                    const isPinned = pins.includes(apt.airport_code);
-                    const pinIcon = isPinned ? '📍' : '📌';
-                    const arrivingStr = (apt.arriving || []).join(', ') || 'None';
-                    const departingStr = (apt.departing || []).join(', ') || 'None';
-                    const lastChange = new Date(apt.last_change).toLocaleString();
-
-                    return `
-                        <div class="airport-item ${isPinned ? 'pinned' : ''}">
-                            <span class="pin-icon" onclick="togglePin('${apt.airport_code}')" title="${isPinned ? 'Unpin' : 'Pin'} airport">
-                                ${pinIcon}
-                            </span>
-                            <div style="flex: 1; display: flex; align-items: center; gap: 15px;">
-                                <strong class="airport-code">${apt.airport_code}</strong>
-                                <div class="airport-runways">
-                                    ↓ ${arrivingStr} | ↑ ${departingStr}
-                                </div>
-                                <span class="airport-time">${lastChange}</span>
-                            </div>
-                            <span class="chevron" id="chevron-${apt.airport_code}" onclick="toggleDrawer('${apt.airport_code}')">
-                                ▼
-                            </span>
-                        </div>
-                        <div class="airport-drawer" id="drawer-${apt.airport_code}">
-                            <div style="padding: 15px;">
-                                <strong style="color: #cbd5e0; margin-bottom: 10px; display: block;">Recent Changes (4 latest)</strong>
-                                ${apt.recent_changes && apt.recent_changes.length > 0 ?
-                                    apt.recent_changes.map(change => `
-                                        <div class="drawer-change">
-                                            <div class="drawer-change-time">${new Date(change.time).toLocaleString()}</div>
-                                            <div class="runway-change">
-                                                <span>
-                                                    ↓ ${(change.from.arriving || []).join(', ') || 'None'}
-                                                    ↑ ${(change.from.departing || []).join(', ') || 'None'}
-                                                </span>
-                                                <span class="arrow">→</span>
-                                                <span>
-                                                    ↓ ${(change.to.arriving || []).join(', ') || 'None'}
-                                                    ↑ ${(change.to.departing || []).join(', ') || 'None'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    `).join('')
-                                : '<p style="color: #718096;">No recent changes</p>'}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-                airportList.innerHTML = html;
-            }
-
-            // Fetch current airports
-            async function fetchCurrentAirports() {
-                try {
-                    const response = await fetch('/api/dashboard/current-airports');
-                    const airports = await response.json();
-                    renderAirportList(airports);
-                } catch (error) {
-                    console.error('Error fetching current airports:', error);
-                    const airportList = document.getElementById('airportList');
-                    if (airportList) {
-                        airportList.innerHTML = '<p style="color: #e53e3e; text-align: center; padding: 20px;">Error loading airport data</p>';
-                    }
-                }
-            }
-
             // Initial load
             fetchDashboardData();
-            fetchCurrentAirports();
 
             // Auto-refresh every 30 seconds
             refreshInterval = setInterval(fetchDashboardData, 30000);
-            setInterval(fetchCurrentAirports, 30000);
 
             // Cleanup on page unload
             window.addEventListener('beforeunload', () => {
@@ -2150,82 +1643,6 @@ async def get_dashboard_stats():
             },
             recent_changes=recent_changes
         )
-
-    finally:
-        conn.close()
-
-@app.get("/api/dashboard/current-airports", response_model=List[AirportStatus])
-async def get_current_airports():
-    """Get current status for all airports"""
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-
-        # Get latest config for each airport
-        cursor.execute("""
-            WITH latest_configs AS (
-                SELECT DISTINCT ON (rc.airport_code)
-                    rc.airport_code,
-                    rc.arriving_runways,
-                    rc.departing_runways,
-                    rc.traffic_flow,
-                    rc.created_at
-                FROM runway_configs rc
-                JOIN atis_data ad ON rc.atis_id = ad.id
-                WHERE ad.collected_at > NOW() - INTERVAL '6 hours'
-                ORDER BY rc.airport_code, rc.created_at DESC
-            )
-            SELECT * FROM latest_configs
-            ORDER BY airport_code
-        """)
-
-        latest_configs = cursor.fetchall()
-
-        result = []
-        for config in latest_configs:
-            airport = config['airport_code']
-
-            # Get 4 most recent changes for this airport
-            cursor.execute("""
-                SELECT
-                    from_config,
-                    to_config,
-                    change_time,
-                    duration_minutes
-                FROM runway_changes
-                WHERE airport_code = %s
-                ORDER BY change_time DESC
-                LIMIT 4
-            """, (airport,))
-
-            changes = cursor.fetchall()
-            recent_changes = []
-            for change in changes:
-                from_cfg = change['from_config'] or {}
-                to_cfg = change['to_config'] or {}
-                recent_changes.append({
-                    'time': change['change_time'].isoformat(),
-                    'from': {
-                        'arriving': from_cfg.get('arriving', []),
-                        'departing': from_cfg.get('departing', [])
-                    },
-                    'to': {
-                        'arriving': to_cfg.get('arriving', []),
-                        'departing': to_cfg.get('departing', [])
-                    },
-                    'duration_minutes': change['duration_minutes']
-                })
-
-            result.append(AirportStatus(
-                airport_code=airport,
-                arriving=config['arriving_runways'] or [],
-                departing=config['departing_runways'] or [],
-                flow=config['traffic_flow'] or 'UNKNOWN',
-                last_change=config['created_at'].isoformat(),
-                recent_changes=recent_changes
-            ))
-
-        return result
 
     finally:
         conn.close()
@@ -2590,76 +2007,6 @@ async def get_review_stats():
             failed_parse_count=0
         )
 
-    finally:
-        conn.close()
-
-@app.get("/api/dashboard/current-airports", response_model=List[AirportStatus])
-async def get_current_airports():
-    """Get current status for all airports with their 4 most recent runway changes"""
-    
-    conn = get_db_connection()
-    try:
-        cursor = conn.cursor()
-        
-        # Get latest runway config for each airport
-        cursor.execute("""
-            WITH latest_configs AS (
-                SELECT DISTINCT ON (airport_code)
-                    airport_code,
-                    arriving_runways,
-                    departing_runways,
-                    traffic_flow,
-                    created_at
-                FROM runway_configs
-                ORDER BY airport_code, created_at DESC
-            )
-            SELECT * FROM latest_configs
-            ORDER BY airport_code
-        """)
-        
-        airports_data = cursor.fetchall()
-        airport_statuses = []
-        
-        for airport_row in airports_data:
-            airport_code = airport_row['airport_code']
-            
-            # Get 4 most recent runway changes for this airport
-            cursor.execute("""
-                SELECT
-                    change_time,
-                    from_config,
-                    to_config,
-                    duration_minutes
-                FROM runway_changes
-                WHERE airport_code = %s
-                ORDER BY change_time DESC
-                LIMIT 4
-            """, (airport_code,))
-            
-            changes = cursor.fetchall()
-            recent_changes = []
-            
-            for change in changes:
-                recent_changes.append(RunwayChangeItem(
-                    time=change['change_time'].isoformat(),
-                    from_arriving=change['from_config'].get('arriving', []) if change['from_config'] else [],
-                    from_departing=change['from_config'].get('departing', []) if change['from_config'] else [],
-                    to_arriving=change['to_config'].get('arriving', []) if change['to_config'] else [],
-                    to_departing=change['to_config'].get('departing', []) if change['to_config'] else [],
-                    duration_minutes=change['duration_minutes']
-                ))
-            
-            airport_statuses.append(AirportStatus(
-                airport_code=airport_code,
-                arriving=airport_row['arriving_runways'] or [],
-                departing=airport_row['departing_runways'] or [],
-                flow=airport_row['traffic_flow'] or 'UNKNOWN',
-                last_change=airport_row['created_at'].isoformat() if airport_row['created_at'] else None,
-                recent_changes=recent_changes
-            ))
-        
-        return airport_statuses
-        
     finally:
         conn.close()
 
