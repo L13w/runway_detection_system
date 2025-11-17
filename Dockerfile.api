@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY runway_api.py .
 COPY runway_parser.py .
+COPY dashboard.html .
 
 # Expose port
 EXPOSE 8000
